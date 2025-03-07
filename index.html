@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD de Personas con Firebase</title>
+  <!-- Cargar Firebase App y Firestore desde CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    form { margin-bottom: 20px; }
+    input, button { padding: 8px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>CRUD de Personas</h1>
+  
+  <!-- Formulario para agregar/actualizar una persona -->
+  <form id="personaForm">
+    <input type="hidden" id="docId" value="">
+    <label for="personaId">ID:</label>
+    <input type="text" id="personaId" required>
+    <label for="nombre">Nombre:</label>
+    <input type="text" id="nombre" required>
+    <label for="telefono">Teléfono:</label>
+    <input type="text" id="telefono" required>
+    <button type="submit">Guardar</button>
+    <button type="button" id="cancelEdit" style="display:none;">Cancelar</button>
+  </form>
+
+  <!-- Tabla para mostrar la lista de personas -->
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Teléfono</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="personasTable">
+      <!-- Se llenará dinámicamente -->
+    </tbody>
+  </table>
+
+  <!-- Código JavaScript para Firebase y operaciones CRUD -->
+  <script>
+    // Reemplaza con la configuración de tu proyecto Firebase
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    // Inicializa Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Referencia a la colección "personas"
+    const personasRef = db.collection("personas");
+
+    // Función para renderizar la tabla en tiempo real
+    personasRef.onSnapshot(snapshot => {
+      const tbody = document.getElementById('personasTable');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const persona = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${persona.personaId}</td>
+          <td>${persona.nombre}</td>
+          <td>${persona.telefono}</td>
+          <td>
+            <button onclick="editarPersona('${doc.id}', '${persona.personaId}', '${persona.nombre}', '${persona.telefono}')">Editar</button>
+            <button onclick="eliminarPersona('${doc.id}')">Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    // Manejar el envío del formulario para crear o actualizar registros
+    document.getElementById('personaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('docId').value;
+      const personaId = document.getElementById('personaId').value;
+      const nombre = document.getElementById('nombre').value;
+      const telefono = document.getElementById('telefono').value;
+
+      if (docId) {
+        // Actualizar registro existente
+        await personasRef.doc(docId).update({ personaId, nombre, telefono });
+      } else {
+        // Crear un nuevo registro
+        await personasRef.add({ personaId, nombre, telefono });
+      }
+
+      // Limpiar formulario
+      document.getElementById('personaForm').reset();
+      document.getElementById('docId').value = '';
+      document.getElementById('cancelEdit').style.display = 'none';
+    });
+
+    // Función para cargar datos en el formulario y editar
+    function editarPersona(docId, personaId, nombre, telefono) {
+      document.getElementById('docId').value = docId;
+      document.getElementById('personaId').value = personaId;
+      document.getElementById('nombre').value = nombre;
+      document.getElementById('telefono').value = telefono;
+      document.getElementById('cancelEdit').style.display = 'inline';
+    }
+    window.editarPersona = editarPersona;
+
+    // Función para cancelar la edición y limpiar el formulario
+    document.getElementById('cancelEdit').addEventListener('click', () => {
+      document.getElementById('personaForm').reset();
+      document.getElementById('docId').value = '';
+      document.getElementById('cancelEdit').style.display = 'none';
+    });
+
+    // Función para eliminar un registro
+    async function eliminarPersona(docId) {
+      if (confirm("¿Seguro que deseas eliminar esta persona?")) {
+        await personasRef.doc(docId).delete();
+      }
+    }
+    window.eliminarPersona = eliminarPersona;
+  </script>
+</body>
+</html>
